@@ -1,4 +1,5 @@
-import argparse 
+import argparse
+import csv
 from pathlib import Path
 
 
@@ -16,9 +17,29 @@ def main() -> int:
         print(f"Error: input file not found: {input_path}")
         return 1
 
-    print(f"Input file exists: {input_path}")
-    print(f"Output will be written to: {output_path}")
-    print(f"Filtering with min temperature: {args.min_temp}")
+    # READ CSV
+    with input_path.open("r", newline="", encoding="utf-8") as f:
+        reader = csv.DictReader(f)
+        records = list(reader)
+
+    # FILTER
+    filtered = []
+    for row in records:
+        try:
+            if float(row["temperature"]) >= args.min_temp:
+                filtered.append(row)
+        except:
+            continue
+
+    # WRITE OUTPUT
+    with output_path.open("w", newline="", encoding="utf-8") as f:
+        writer = csv.DictWriter(f, fieldnames=reader.fieldnames)
+        writer.writeheader()
+        writer.writerows(filtered)
+
+    print(f"Read {len(records)} records")
+    print(f"Wrote {len(filtered)} records to {output_path}")
+
     return 0
 
 
