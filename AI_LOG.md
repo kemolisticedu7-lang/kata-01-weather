@@ -18,3 +18,16 @@ AI_LOG.md
 - Rejected suggestions that assumed real-time system requirements, as those are not yet established
 ## Judgment Calls
 I prioritized scalability, data consistency, and evolvability because of the dataset’s size and historical depth. I intentionally avoided committing to availability or low-latency guarantees since the problem definition has not yet been finalized.
+
+
+## Foundation 2 — AI Collaboration
+
+### Style selection dialogue
+- Asked AI to compare pipeline vs layered vs service-based styles for a batch dataset.
+- AI recommended [X]. I accepted [Y] and rejected real-time/streaming assumptions.
+
+### Problem refinement
+- AI helped me commit to flight delay prediction by clarifying user, scope, and success criteria.
+
+### Where AI was wrong or unhelpful
+- AI suggested real-time / microservices approaches without established requirements; I chose a batch pipeline modular monolith instead.
