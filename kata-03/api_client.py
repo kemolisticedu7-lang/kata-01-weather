@@ -25,7 +25,7 @@ def request_with_retry(params, retries=5, timeout=30):
             return None
 
         except requests.RequestException as e:
-            wait = 2 ** attempt
+            wait = 3 ** attempt
             print(f"Request failed: {e}. Retrying in {wait}s...")
             time.sleep(wait)
 
@@ -90,3 +90,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
