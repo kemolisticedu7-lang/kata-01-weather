@@ -7,7 +7,7 @@ BASE_URL = "https://api.stlouisfed.org/fred/series/observations"
 OUTPUT_DIR = "kata-03/output"
 
 
-def request_with_retry(params, retries=5, timeout=30):
+def request_with_retry(params, retries=7, timeout=20):
     for attempt in range(retries):
         try:
             r = requests.get(BASE_URL, params=params, timeout=timeout)
