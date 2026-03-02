@@ -1,5 +1,6 @@
 import json
-import logging.info("Starting concurrent fetch job")
+import logging
+logging.info("Starting concurrent fetch job")
 import threading
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
@@ -75,13 +76,18 @@ def main() -> None:
     successes = 0
     failures = 0
 
-    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+RESULTS_PATH.write_text("", encoding="utf-8")
+ERRORS_PATH.write_text("", encoding="utf-8")
+
+with ThreadPoolExecutor(max_workers=max_workers) as executor:
         futures = {executor.submit(fetch_url, url, timeout_seconds): url for url in urls}
 
         for future in as_completed(futures):
             url = futures[future]
-            u, ok, payload = future.result()
-
+            try:
+                u, ok, payload = future.result()
+           except Exception as e:
+                u, ok, payload = url, false, f"Exception: {e}"
             with lock:
                 if ok:
                     successes += 1
