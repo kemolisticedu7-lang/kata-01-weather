@@ -99,7 +99,7 @@ with ThreadPoolExecutor(max_workers=max_workers) as executor:
                     with ERRORS_PATH.open("a", encoding="utf-8") as ef:
                         ef.write(f"{u} -> {payload}\n")
 
-            logging.info(f"{'OK' if ok else 'FAIL'}: {url}")
+            logging.info(f"[{'OK' if ok else 'FAIL'}] URL: {url}")
 
     elapsed = (datetime.now() - start).total_seconds()
     logging.info(f"Done. Success={successes}, Fail={failures}, Time={elapsed:.2f}s")
