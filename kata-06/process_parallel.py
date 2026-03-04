@@ -125,7 +125,7 @@ def combine_results(results: List[ChunkResult]) -> Dict[str, Any]:
 
 
 def main() -> None:
-    # ensure_output_dir()
+    ensure_output_dir()
     reset_outputs()
 
     cfg = load_config()
