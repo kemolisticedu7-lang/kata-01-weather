@@ -1,111 +1,83 @@
 import json
 import logging
-logging.info("Starting concurrent fetch job")
 import threading
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from datetime import datetime
-from pathlib import Paths
-from typing import Any, Dict, List, Tuples
+from pathlib import Path
+from typing import Any, Dict, List, Tuple
+
 import requests
 
 
 BASE_DIR = Path(__file__).resolve().parent
 CONFIG_PATH = BASE_DIR / "config.json"
 OUTPUT_DIR = BASE_DIR / "output"
-RESULTS_PATH = OUTPUT_DIR / "results.jsonl"
+RESULTS_PATH = OUTPUT_DIR / "results.json"
 ERRORS_PATH = OUTPUT_DIR / "errors.log"
 
 
 def setup_logging() -> None:
-Â Â Â Â OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
-Â Â Â Â logging.basicConfig(
-Â Â Â Â Â Â Â Â level=logging.INFO,
-Â Â Â Â Â Â Â Â format="%(asctime)s [%(levelname)s] %(message)s",
-Â Â Â Â Â Â Â Â handlers=[logging.StreamHandler()],
-Â Â Â Â )
-
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s %(levelname)s %(message)s",
+    )
 
 def load_config() -> Dict[str, Any]:
-Â Â Â Â with CONFIG_PATH.open("r", encoding="utf-8") as f:
-Â Â Â Â Â Â Â Â return json.load(f)
+    with CONFIG_PATH.open("r", encoding="utf-8") as f:
+        return json.load(f)
 
 
-def fetch_url(url: str, timeout_seconds: int) -> Tuple[str, bool, Any]:
-Â Â Â Â """
-Â Â Â Â Returns (url, success, data_or_error)
-Â Â Â Â """
-Â Â Â Â try:
-Â Â Â Â Â Â Â Â r = requests.get(url, timeout=timeout_seconds)
-Â Â Â Â Â Â Â Â r.raise_for_status()
-
-Â Â Â Â Â Â Â Â # Try JSON first, fall back to text
-Â Â Â Â Â Â Â Â try:
-Â Â Â Â Â Â Â Â Â Â Â Â return url, True, r.json()
-Â Â Â Â Â Â Â Â except Exception:
-Â Â Â Â Â Â Â Â Â Â Â Â return url, True, r.text
-
-Â Â Â Â except Exception as e:
-Â Â Â Â Â Â Â Â return url, False, str(e)
+def fetch_url(url: str, timeout_seconds: int) -> Tuple[str, bool, str]:
+Â Â Â Â try:
+Â Â Â Â Â Â Â Â response = requests.get(url, timeout=timeout_seconds)
+Â Â Â Â Â Â Â Â response.raise_for_status()
+Â Â Â Â Â Â Â Â return url, True, response.text[:500]
+Â Â Â Â except Exception as e:
+Â Â Â Â Â Â Â Â return url, False, str(e)
 
 
 def main() -> None:
-Â Â Â Â setup_logging()
-Â Â Â Â cfg = load_config()
+Â Â Â Â setup_logging()
+Â Â Â Â logging.info("Starting concurrent fetch job")
 
-Â Â Â Â urls: List[str] = cfg.get("urls", [])
-Â Â Â Â max_workers: int = int(cfg.get("thread_pool_size", 8))
-Â Â Â Â timeout_seconds: int = int(cfg.get("timeout_seconds", 10))
+Â Â Â Â OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+Â Â Â Â RESULTS_PATH.write_text("", encoding="utf-8")
+Â Â Â Â ERRORS_PATH.write_text("", encoding="utf-8")
 
-Â Â Â Â if not urls:
-Â Â Â Â Â Â Â Â logging.error("No URLs found in config.json")
-Â Â Â Â Â Â Â Â return
+Â Â Â Â cfg = load_config()
+Â Â Â Â urls = cfg.get("urls", [])
+Â Â Â Â timeout_seconds = int(cfg.get("timeout_seconds", 10))
+Â Â Â Â max_workers = int(cfg.get("max_workers", 4))
 
-Â Â Â Â OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+Â Â Â Â lock = threading.Lock()
+Â Â Â Â results: List[Dict[str, Any]] = []
+Â Â Â Â successes = 0
+Â Â Â Â failures = 0
 
-Â Â Â Â # Thread-safe file writing
-Â Â Â Â lock = threading.Lock()
+Â Â Â Â with ThreadPoolExecutor(max_workers=max_workers) as executor:
+Â Â Â Â Â Â Â Â futures = {
+Â Â Â Â Â Â Â Â Â Â Â Â executor.submit(fetch_url, url, timeout_seconds): url
+Â Â Â Â Â Â Â Â Â Â Â Â for url in urls
+Â Â Â Â Â Â Â Â }
 
-Â Â Â Â # Clear output files each run (idempotent-ish)
-Â Â Â Â RESULTS_PATH.write_text("", encoding="utf-8")
-Â Â Â Â ERRORS_PATH.write_text("", encoding="utf-8")
+Â Â Â Â Â Â Â Â for future in as_completed(futures):
+Â Â Â Â Â Â Â Â Â Â Â Â url = futures[future]
+Â Â Â Â Â Â Â Â Â Â Â Â try:
+Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â u, ok, payload = future.result()
+Â Â Â Â Â Â Â Â Â Â Â Â except Exception as e:
+Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â u, ok, payload = url, False, f"Exception: {e}"
 
-Â Â Â Â start = datetime.now()
+Â Â Â Â Â Â Â Â Â Â Â Â with lock:
+Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â if ok:
+Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â successes += 1
+Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â results.append({"url": u, "ok": ok, "payload": payload})
+Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â else:
+Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â failures += 1
+Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â with ERRORS_PATH.open("a", encoding="utf-8") as ef:
+Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â ef.write(f"{u}: {payload}\n")
 
-Â Â Â Â logging.info(f"Fetching {len(urls)} URLs with {max_workers} threads (timeout={timeout_seconds}s)")
-
-Â Â Â Â successes = 0
-Â Â Â Â failures = 0
-
-RESULTS_PATH.write_text("", encoding="utf-8")
-ERRORS_PATH.write_text("", encoding="utf-8")
-
-with ThreadPoolExecutor(max_workers=max_workers) as executor:
-Â Â Â Â Â Â Â Â futures = {executor.submit(fetch_url, url, timeout_seconds): url for url in urls}
-
-Â Â Â Â Â Â Â Â for future in as_completed(futures):
-Â Â Â Â Â Â Â Â Â Â Â Â url = futures[future]
-            try:
-Â Â Â Â Â Â Â Â Â Â Â Â     u, ok, payload = future.result()
-           except Exception as e:
-                u, ok, payload = url, false, f"Exception: {e}"
-Â Â Â Â Â Â Â Â Â Â Â Â with lock:
-Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â if ok:
-Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â successes += 1
-Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â record = {"url": u, "ok": True, "data": payload}
-Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â with RESULTS_PATH.open("a", encoding="utf-8") as rf:
-Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â rf.write(json.dumps(record) + "\n")
-Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â else:
-Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â failures += 1
-Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â with ERRORS_PATH.open("a", encoding="utf-8") as ef:
-Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â Â ef.write(f"{u} -> {payload}\n")
-
-Â Â Â Â Â Â Â Â Â Â Â Â logging.info(f"[{'OK' if ok else 'FAIL'}] URL: {url}")
-
-Â Â Â Â elapsed = (datetime.now() - start).total_seconds()
-Â Â Â Â logging.info(f"Done. Success={successes}, Fail={failures}, Time={elapsed:.2f}s")
-Â Â Â Â logging.info(f"Results: {RESULTS_PATH}")
-Â Â Â Â logging.info(f"Errors:Â Â {ERRORS_PATH}")
+Â Â Â Â RESULTS_PATH.write_text(json.dumps(results, indent=2), encoding="utf-8")
+Â Â Â Â logging.info("Finished concurrent fetch job: %s success, %s failure", successes, failures)
 
 
 if __name__ == "__main__":
-Â Â Â Â main()
+Â Â Â Â main()
