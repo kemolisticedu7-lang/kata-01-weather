@@ -21,6 +21,28 @@ I prioritized scalability, data consistency, and evolvability because of the dat
 
 ---
 
+# AI Collaboration Log – Foundation 2
+
+## What I Asked
+- Asked AI for guidance on selecting an architecture style for the data pipeline.
+- Asked how to evaluate trade-offs between performance, scalability, and simplicity.
+- Asked how to structure the architecture documentation for the assignment.
+
+## What I Got
+- AI suggested using a modular pipeline architecture separating data acquisition, transformation, and output.
+- Examples of architectural characteristics such as scalability, reliability, and maintainability.
+- Suggestions on documenting trade-offs and architectural decisions.
+
+## What I Used, Modified, or Rejected
+- Used the modular pipeline structure suggested by AI.
+- Modified explanations to match the airline dataset analysis problem.
+- Rejected complex distributed architecture suggestions since they were unnecessary for the assignment scope.
+
+## Judgment Calls
+I prioritized simplicity, maintainability, and modular design. The dataset size and project scope did not require a distributed architecture, so I chose a simpler pipeline architecture that can still scale later if necessary.
+
+---
+
 # AI Collaboration Log – Foundation 3
 
 ## Process Description
