@@ -10,4 +10,4 @@ from transform_data import transform_data
 @pytest.mark.parametrize("expected_rows", [9])
 def test_transform(expected_rows):
     rows = transform_data()
-    assert len(rows) == 99
+    assert len(rows) == expected_rows
