@@ -4,7 +4,7 @@ Foundation 1 Drift Consultation Submission
 
 Student: Oluwakemi Innocent
 
-Contents included in repository:
+Contents included in the repository:
 - Script for drift consultation
 - AI_LOG.md
 - Foundation artifacts
