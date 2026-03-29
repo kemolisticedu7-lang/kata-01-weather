@@ -1,3 +1,4 @@
+
 Kata 8 – API Client Testing, Git Tasks, and Stretch
 
 Overview
@@ -62,9 +63,4 @@ This confirms that:
 	•	HTTP errors and timeouts are handled
 	•	API responses are mocked properly
 	•	the API client behaves as expected without external dependencies
-
-
-
-
-
-
+:::
