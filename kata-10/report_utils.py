@@ -1,10 +1,12 @@
 def classify_delay_risk(score: float) -> str:
     """Classify a delay risk score into a category."""
-    low_threshold = 0.3
-    high_threshold = 0.7
+    thresholds = {
+        "low": 0.3,
+        "high": 0.7
+    }
 
-    if score < low_threshold:
+    if score < thresholds["low"]:
         return "low"
-    elif score < high_threshold:
+    if score < thresholds["high"]:
         return "medium"
     return "high"
