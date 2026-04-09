@@ -1,0 +1,6 @@
+{
+  "num_records": 200000,
+  "chunk_size": 20000,
+  "max_workers": 4,
+  "simulate_bug": false
+}
